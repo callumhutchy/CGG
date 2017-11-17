@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<!-- The previous line tells the browser, that the page uses the HTML5 standard. -->
+
+<html>
+
+<head>
+	<title>Practical for color and depth</title>
+
+	<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+
+	<!-- The following meta line optimizes the site for mobile devices. It sets the viewport size 
+          to the screen size, so it will be displayed maximized, but unscaled. -->
+	<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1">
+
+	<script src="js/three.min.js"></script>
+	<script src="js/OrbitControls.js"></script>
+</head>
+
+<body>
+
+	<div id="overlaytext" style="position: absolute; top: -20px; left: 100px">
+		<canvas id="practical-WebGL" width="500" height="500"></canvas>
+		<p>
+			<h2>Color and depth</h2>
+			You will see a walking robot on the screen. The colors of its body and head except its face are changing when it walks around.
+			The four feet of the robot can be reduced to two for computational efficiency or for the simulation of a human. Try to
+			complete the following tasks and see the visual effects created:
+			<ol>
+				<li> Explain why the robot changes the color of its body and head except its face with regards to its distance from you: Watch
+					carefully how the color of the robot body and head except its face changes around and explain why.
+					<li> Change the color of the face of the robot: currently, the face, grumpycat, of the robot does not change when it walks
+						around. Change the color of the face of the robot to red and make sure that it fades in when walking towards you but
+						fades out when walking away from you. Hints: the front face material can be modified with the color property: material1
+						= new THREE.MeshBasicMaterial( { color: facecolor } ); and facecolor=new THREE.Color(0xff0000); which can be changed
+						when it walks around. For example, the rotation angle in one step is ang, the total rotation so far is angle, after
+						it walks for 300 steps, it would turn around. Before turning, the color can be calculated as facered= (Math.floor(angle/ang)
+						% 300 )/300; the facecolor can be reset as: facecolor.setRGB(facered, 0, 0); After turning, it can be reset as: facecolor.setRGB(1-facered,
+						0, 0);
+						<li> Change the number and positions of the feet: Reduce the four feet to two, and find proper body positions of the robot
+							to attach them. You may want to attach the two feet into the middle of the bottom of the body. Note that the original
+							four feet are symmetrical, the positions of these feet are defined in the xz plane at footH in the y axis. The middle
+							of these positions can be easily found. Then you need to translate the feet to such positions.
+							<li> Change geometry and the shape of the feet: Model the remaining two feet of the robot using an L-shape. Hints: define
+								another box shape and add it underneath the existing foot. Pay more attention of the size, position and orientation
+								of this box relative to the existing one.
+			</ol>
+		</p>
+	</div>
+
+	<!-- This is the DIV element which will contain the WebGL canvas. To be identifiable lateron, 
+          the id 'WebGLCanvas' is applied to it. -->
+	<div id="WebGLCanvas">
+
+		<script>
+
+			var angle = 0
+			var dTheta = 0.3;
+			var controls;
+			var facecolor;
+
+			var direction = 1;
+			var rotationX = 0;
+			// delta angle, in degrees changes angle steve is moving
+			var dx = .1
+
+			var creeper, foot1, foot2, foot3, foot4, renderer, scene, camera;
+
+			initScene();
+			render();
+
+			function initScene() {
+				scene = new THREE.Scene();
+				camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+				renderer = new THREE.WebGLRenderer();
+
+				var axisHelper = new THREE.AxisHelper(20);
+				scene.add(axisHelper);
+
+				renderer.setSize(window.innerWidth / 2, window.innerHeight / 2);
+
+				document.getElementById("WebGLCanvas").appendChild(renderer.domElement);
+
+				// relative width, height and depth of the robot
+				var w = 6; // 12
+				var h = 14; // 40
+				var d = 6; // 12
+
+
+
+				function drawCreeper(w, h, d) {
+
+					creeper = new THREE.Object3D();
+					var feet = new THREE.Object3D();
+					var upperBody = new THREE.Object3D();
+
+					// define the size of different parts of the robot
+					// model the robot
+					// head
+					var headH = 0.3 * h;
+					var headW = w;
+					var headD = d;
+
+					// body
+					var bodyH = 0.5 * h;
+					var bodyW = w;
+					var bodyD = 0.33 * d;
+
+					// foot
+					var footH = 0.2 * h; //2.8
+					var footW = 0.5 * w; //3
+					var footD = 0.33 * d; // 1.98
+
+					var creeperMat = new THREE.MeshNormalMaterial(); // material
+
+					//the geometry for the front feet will be the same so we can just make it once
+					var footG = new THREE.BoxGeometry(footW, footH, footD);
+					var footBase = new THREE.BoxGeometry(footW, footD, footH);
+					footG.applyMatrix(new THREE.Matrix4().makeTranslation(0, -(footH * 0.5), 0)); //0,-1.4,0.99
+
+					//Made with help from here
+					//https://stackoverflow.com/questions/30245990/how-to-merge-two-geometries-or-meshes-using-three-js-r71
+
+					var singleGeometry = new THREE.Geometry();
+
+					var upperMesh = new THREE.Mesh(footG);
+
+					var lowerMesh = new THREE.Mesh(footBase);
+					lowerMesh.translateZ(footD - (footH / footD));
+					lowerMesh.translateY(-footH);
+
+					upperMesh.updateMatrix();
+
+					singleGeometry.merge(upperMesh.geometry, upperMesh.matrix);
+
+					lowerMesh.updateMatrix();
+					singleGeometry.merge(lowerMesh.geometry, lowerMesh.matrix);
+
+
+					//foot 1 and 2 are the front feet 
+					foot1 = new THREE.Mesh(singleGeometry, creeperMat);
+					foot1.translateX(-0.5 * footW - 0.1);
+					foot1.translateY(footH);
+					foot1.translateZ((0.5 * bodyD) - (footD * 0.5));
+
+					feet.add(foot1);
+
+					foot2 = new THREE.Mesh(singleGeometry, creeperMat);
+					foot2.translateX(0.5 * footW + 0.1);
+					foot2.translateY(footH);
+					foot2.translateZ((0.5 * bodyD) - (footD * 0.5));
+					feet.add(foot2);
+
+
+					creeper.add(feet);
+
+					var bodyG = new THREE.BoxGeometry(bodyW, bodyH, bodyD); // geometry
+					var body = new THREE.Mesh(bodyG, creeperMat);  // body			 
+					upperBody.add(body);
+
+
+					//add a new material for steve's head so that one of the faces has 
+					//an image mapped on it to differentiate the front
+
+					facecolor = new THREE.Color(0xff0000);
+					var material1 = new THREE.MeshBasicMaterial({ color: facecolor });
+
+
+					var material2 = new THREE.MeshNormalMaterial();
+					var material3 = new THREE.MeshNormalMaterial();
+					var material4 = new THREE.MeshNormalMaterial();
+					var material5 = new THREE.MeshNormalMaterial();
+					var material6 = new THREE.MeshNormalMaterial();
+
+					var headMaterials = [material5, material2, material3, material4, material1, material6]; // head materials
+
+					var headG = new THREE.BoxGeometry(headW, headH, headD);  // geometry
+					var head = new THREE.Mesh(headG, headMaterials); // head			
+					head.translateY((bodyH * 0.5) + (headH * 0.5) + 0.1);
+
+					upperBody.add(head);
+
+					upperBody.translateY(footH + (bodyH * 0.5));
+
+					creeper.add(upperBody);
+					scene.add(creeper);
+
+				}
+				drawCreeper(12, 40, 12);
+				renderer.setClearColor(0x000000);
+				camera.position.z = 10;
+
+				controls = new THREE.OrbitControls(camera);
+
+			}
+
+			// uypdate the state of the robot
+			function walk() {
+
+				// these control the dirction of rotation of the feet
+				if (direction == 1) {
+					rotationX += dx;
+				}
+
+				if (direction == -1) {
+					rotationX -= dx;
+				}
+
+				if (rotationX >= (Math.PI / 6) || rotationX <= (-Math.PI / 6)) {
+					//console.log("Switch direction");
+					direction = direction * -1;
+				}
+
+				// update the actual rotation angle 
+				foot1.rotation.x = rotationX; //this is in radians!!!
+				foot2.rotation.x = -rotationX;
+
+				// simulate the going around of the robot
+				var theta = angle * (Math.PI / 180.0); // theta is in radians
+				creeper.position.x = (10 * Math.cos(theta)); // radius of 20
+				creeper.position.z = (10 * Math.sin(theta)); // rotate in the xz plane 
+				creeper.rotation.y = -1 * theta;
+				//console.log("steve rotation:" + steve.rotation.y);
+				angle += dTheta;
+
+				var facered = (Math.floor(angle / dTheta) % 300) / 300;
+				facecolor.setRGB(facered, 0, 0);
+
+			}
+
+			function render() {
+				requestAnimationFrame(render);
+				walk();
+				controls.update();
+				renderer.render(scene, camera);
+			}
+
+		</script>
+</body>
+
+</html>

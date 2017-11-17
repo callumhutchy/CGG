@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<!-- The previous line tells the browser, that the page uses the HTML5 standard. -->
+<html>
+
+<head>
+    <title>Callum Hutchinson CGG Assignment</title>
+    <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1">
+    <!-- Main purpose of the small bit of CSS is to get rid of margins so that the canvas covers the full screen
+        Also removes scrollbars
+    -->
+    <style type="text/css">
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #WebGLCanvas {
+            min-height: 100%;
+        }
+    </style>
+</head>
+
+<script src="js/three.min.js"></script>
+<script src="js/OrbitControls.js"></script>
+<script src="js/MTLLoader.js"></script>
+<script src="js/OBJLoader.js"></script>
+<!-- Library for more accurate inner window sizing https://github.com/tysonmatanich/viewportSize -->
+<script src="js/viewportSize-min.js"></script>
+
+<body>
+
+    <div id="WebGLCanvas">
+
+        <script>
+            var scene, camera, renderer, controls;
+            var testLight;
+            var width, height;
+            width = viewportSize.getWidth();
+            height = viewportSize.getHeight();
+            var loader = new THREE.TextureLoader();
+            main();
+            render();
+
+
+            function main() {
+                testLight = new THREE.DirectionalLight(0xffffff, 0.5);
+                scene = new THREE.Scene();
+                camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+                renderer = new THREE.WebGLRenderer();
+                scene.add(testLight);
+
+                var axisHelper = new THREE.AxisHelper(20);
+                scene.add(axisHelper);
+
+                renderer.setSize(width, height);
+
+                document.getElementById("WebGLCanvas").appendChild(renderer.domElement);
+
+                camera.position.z = 20;
+
+                controls = new THREE.OrbitControls(camera);
+
+                drawFloor();
+                drawKitchenWalls();
+                drawLivingRoomWalls();
+                drawBathroomWalls();
+                drawLamp();
+                addSkybox();
+            }
+
+            function drawFloor(){
+                //Defining House planes
+                var floor = new THREE.PlaneGeometry(30, 40);
+                var floorTexture = loader.load('images/wood.png', function (floorTexture) {
+                    floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
+                    floorTexture.offset.set(0, 0);
+                    floorTexture.repeat.set(15, 20);
+                });
+                var floorMaterial = new THREE.MeshPhongMaterial({
+                    color: 0xffffff,
+                    specular: 0x111111,
+                    shininess: 10,
+                    map: floorTexture,
+                    side: THREE.DoubleSide
+                });
+
+                var floorMesh = new THREE.Mesh(floor, floorMaterial);
+                floorMesh.rotation.x = Math.PI / 2;
+
+                scene.add(floorMesh);
+            }
+
+            function drawKitchenWalls(){
+                
+                //Kitchen Exterior Walls
+                var kitchenExteriorTallWallTexture = loader.load('images/brickred.png', function (kitchenExteriorTallWallTexture) {
+                    kitchenExteriorTallWallTexture.wrapS = kitchenExteriorTallWallTexture.wrapT = THREE.RepeatWrapping;
+                    kitchenExteriorTallWallTexture.offset.set(0, 0);
+                    kitchenExteriorTallWallTexture.repeat.set(3, 10);
+                });
+                var kitchenExteriorTallWallMaterial = new THREE.MeshBasicMaterial({
+                    map: kitchenExteriorTallWallTexture,
+                    side: THREE.DoubleSide
+                });
+
+                var kitchenExteriorWideWall1Texture = loader.load('images/brickred.png', function (kitchenExteriorWideWall1Texture) {
+                    kitchenExteriorWideWall1Texture.wrapS = kitchenExteriorWideWall1Texture.wrapT = THREE.RepeatWrapping;
+                    kitchenExteriorWideWall1Texture.offset.set(0, 0);
+                    kitchenExteriorWideWall1Texture.repeat.set(14, 3.5);
+                });
+                var kitchenExteriorWideWall1Material = new THREE.MeshBasicMaterial({
+                    map: kitchenExteriorWideWall1Texture,
+                    side: THREE.DoubleSide
+                });
+
+                var kitchenExteriorWideWall2Texture = loader.load('images/brickred.png', function (kitchenExteriorWideWall2Texture) {
+                    kitchenExteriorWideWall2Texture.wrapS = kitchenExteriorWideWall2Texture.wrapT = THREE.RepeatWrapping;
+                    kitchenExteriorWideWall2Texture.offset.set(0, 0);
+                    kitchenExteriorWideWall2Texture.repeat.set(9, 3.5);
+                });
+                var kitchenExteriorWideWall2Material = new THREE.MeshBasicMaterial({
+                    map: kitchenExteriorWideWall2Texture,
+                    side: THREE.DoubleSide
+                });
+
+                var kitchenExTallWall1Mesh = new THREE.Mesh(new THREE.PlaneGeometry(3, 10), kitchenExteriorTallWallMaterial);
+                kitchenExTallWall1Mesh.rotation.y = Math.PI / 2;
+                kitchenExTallWall1Mesh.position.y = 5;
+                kitchenExTallWall1Mesh.position.x = 15;
+                kitchenExTallWall1Mesh.position.z = -1.5;
+
+                var kitchenExTallWall2Mesh = new THREE.Mesh(new THREE.PlaneGeometry(3, 10), kitchenExteriorTallWallMaterial);
+                kitchenExTallWall2Mesh.rotation.y = Math.PI / 2;
+                kitchenExTallWall2Mesh.position.y = 5;
+                kitchenExTallWall2Mesh.position.x = 15;
+                kitchenExTallWall2Mesh.position.z = -20 + 1.5;
+
+                var kitchenExWideWall1Mesh = new THREE.Mesh(new THREE.PlaneGeometry(14, 3.5), kitchenExteriorWideWall1Material);
+                kitchenExWideWall1Mesh.rotation.y = Math.PI / 2;
+                kitchenExWideWall1Mesh.position.y = 1.75;
+                kitchenExWideWall1Mesh.position.x = 15;
+                kitchenExWideWall1Mesh.position.z = -10;
+
+                var kitchenExWideWall2Mesh = new THREE.Mesh(new THREE.PlaneGeometry(14, 3.5), kitchenExteriorWideWall1Material);
+                kitchenExWideWall2Mesh.rotation.y = Math.PI / 2;
+                kitchenExWideWall2Mesh.position.y = 10 - 1.75;
+                kitchenExWideWall2Mesh.position.x = 15;
+                kitchenExWideWall2Mesh.position.z = -10;
+
+                var kitchenExTallWall3Mesh = new THREE.Mesh(new THREE.PlaneGeometry(3, 10), kitchenExteriorTallWallMaterial);
+                kitchenExTallWall3Mesh.position.z = -20;
+                kitchenExTallWall3Mesh.position.y = 5;
+                kitchenExTallWall3Mesh.position.x = 1.5;
+
+                var kitchenExTallWall4Mesh = new THREE.Mesh(new THREE.PlaneGeometry(3, 10), kitchenExteriorTallWallMaterial);
+                kitchenExTallWall4Mesh.position.z = -20;
+                kitchenExTallWall4Mesh.position.y = 5;
+                kitchenExTallWall4Mesh.position.x = 15 - 1.5;
+
+                var kitchenExWideWall3Mesh = new THREE.Mesh(new THREE.PlaneGeometry(9, 3.5), kitchenExteriorWideWall2Material);
+                kitchenExWideWall3Mesh.position.z = -20;
+                kitchenExWideWall3Mesh.position.y = 1.75;
+                kitchenExWideWall3Mesh.position.x = 7.5;
+
+                var kitchenExWideWall4Mesh = new THREE.Mesh(new THREE.PlaneGeometry(9, 3.5), kitchenExteriorWideWall2Material);
+                kitchenExWideWall4Mesh.position.z = -20;
+                kitchenExWideWall4Mesh.position.y = 10 - 1.75;
+                kitchenExWideWall4Mesh.position.x = 7.5;
+
+                scene.add(kitchenExTallWall3Mesh);
+                scene.add(kitchenExTallWall4Mesh);
+                scene.add(kitchenExWideWall3Mesh);
+                scene.add(kitchenExWideWall4Mesh);
+
+                scene.add(kitchenExTallWall1Mesh);
+                scene.add(kitchenExTallWall2Mesh);
+                scene.add(kitchenExWideWall1Mesh);
+                scene.add(kitchenExWideWall2Mesh);
+
+
+
+                //Kitchen Interior Walls
+                var kitchenWallMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+
+                var kitchenWall1Mesh = new THREE.Mesh(new THREE.PlaneGeometry(12, 10), kitchenWallMaterial);
+                kitchenWall1Mesh.rotation.y = Math.PI / 2;
+                kitchenWall1Mesh.position.y = 5;
+                kitchenWall1Mesh.position.z = -20 + 6;
+
+                var kitchenWall2Mesh = new THREE.Mesh(new THREE.PlaneGeometry(4, 3), kitchenWallMaterial);
+                kitchenWall2Mesh.rotation.y = Math.PI / 2;
+                kitchenWall2Mesh.position.y = 8.5;
+                kitchenWall2Mesh.position.z = -6;
+
+                var kitchenWall3Mesh = new THREE.Mesh(new THREE.PlaneGeometry(4, 10), kitchenWallMaterial);
+                kitchenWall3Mesh.rotation.y = Math.PI / 2;
+                kitchenWall3Mesh.position.y = 5;
+                kitchenWall3Mesh.position.z = -2;
+
+                var kitchenWall4Mesh = new THREE.Mesh(new THREE.PlaneGeometry(15, 10), kitchenWallMaterial);
+                kitchenWall4Mesh.position.y = 5;
+                kitchenWall4Mesh.position.x = 7.5;
+
+                scene.add(kitchenWall4Mesh);
+                scene.add(kitchenWall2Mesh);
+                scene.add(kitchenWall3Mesh);
+                scene.add(kitchenWall1Mesh);
+
+            }
+
+            function drawLivingRoomWalls(){
+
+                var wallTexture1 = loader.load('images/brickred.png', function (wallTexture1) {
+                    wallTexture1.wrapS = wallTexture1.wrapT = THREE.RepeatWrapping;
+                    wallTexture1.offset.set(0, 0);
+                    wallTexture1.repeat.set(3, 10);
+                });
+                var wallMaterial1 = new THREE.MeshBasicMaterial({
+                    map: wallTexture1,
+                    side: THREE.DoubleSide
+                });
+
+                var wallTexture2 = loader.load('images/brickred.png', function (wallTexture2) {
+                    wallTexture2.wrapS = wallTexture2.wrapT = THREE.RepeatWrapping;
+                    wallTexture2.offset.set(0, 0);
+                    wallTexture2.repeat.set(8, 3);
+                });
+                var wallMaterial2 = new THREE.MeshBasicMaterial({
+                    map: wallTexture2,
+                    side: THREE.DoubleSide
+                });
+
+                var wall1Mesh = new THREE.Mesh(new THREE.PlaneGeometry(6,10), wallMaterial1);
+                wall1Mesh.rotation.y = Math.PI / 2;
+                wall1Mesh.position.y = 5;
+                wall1Mesh.position.x = 15;
+                wall1Mesh.position.z = 3;
+
+                var wall2Mesh = new THREE.Mesh(new THREE.PlaneGeometry(6,10), wallMaterial1);
+                wall2Mesh.rotation.y = Math.PI / 2;
+                wall2Mesh.position.y = 5;
+                wall2Mesh.position.x = 15;
+                wall2Mesh.position.z = 20 - 3;
+
+                var wall3Mesh = new THREE.Mesh(new THREE.PlaneGeometry(8,3), wallMaterial2);
+                wall3Mesh.rotation.y = Math.PI / 2;
+                wall3Mesh.position.y = 10 - 1.5;
+                wall3Mesh.position.x = 15;
+                wall3Mesh.position.z = 10;
+
+                scene.add(wall1Mesh);
+                scene.add(wall2Mesh);
+                scene.add(wall3Mesh);
+
+                var wallTexture3 = loader.load('images/brickred.png', function (wallTexture3) {
+                    wallTexture3.wrapS = wallTexture3.wrapT = THREE.RepeatWrapping;
+                    wallTexture3.offset.set(0, 0);
+                    wallTexture3.repeat.set(30, 10);
+                });
+                var wallMaterial3 = new THREE.MeshBasicMaterial({
+                    map: wallTexture3,
+                    side: THREE.DoubleSide
+                });
+
+                var wall4Mesh = new THREE.Mesh(new THREE.PlaneGeometry(30,10), wallMaterial3);
+                wall4Mesh.position.y = 5;
+                wall4Mesh.position.z = 20;
+                
+                scene.add(wall4Mesh);
+
+                var wallTexture4 = loader.load('images/brickred.png', function (wallTexture4) {
+                    wallTexture4.wrapS = wallTexture4.wrapT = THREE.RepeatWrapping;
+                    wallTexture4.offset.set(0, 0);
+                    wallTexture4.repeat.set(30, 10);
+                });
+                var wallMaterial4 = new THREE.MeshBasicMaterial({
+                    map: wallTexture4,
+                    side: THREE.DoubleSide
+                });
+
+                var wall5Mesh = new THREE.Mesh(new THREE.PlaneGeometry(40,10), wallMaterial4);
+                wall5Mesh.rotation.y = Math.PI / 2;
+                wall5Mesh.position.y = 5;
+                wall5Mesh.position.x = -15;
+                
+                scene.add(wall5Mesh);
+
+                var wallTexture5 = loader.load('images/brickred.png', function (wallTexture5) {
+                    wallTexture5.wrapS = wallTexture5.wrapT = THREE.RepeatWrapping;
+                    wallTexture5.offset.set(0, 0);
+                    wallTexture5.repeat.set(10, 10);
+                });
+                var wallMaterial5 = new THREE.MeshBasicMaterial({
+                    map: wallTexture5,
+                    side: THREE.DoubleSide
+                });
+
+                var wall6Mesh = new THREE.Mesh(new THREE.PlaneGeometry(10,10), wallMaterial5);
+                wall6Mesh.position.y = 5;
+                wall6Mesh.position.z = -20;
+                wall6Mesh.position.x = -15 + 5;
+
+                scene.add(wall6Mesh);
+
+                var wallTexture6 = loader.load('images/brickred.png', function (wallTexture6) {
+                    wallTexture6.wrapS = wallTexture6.wrapT = THREE.RepeatWrapping;
+                    wallTexture6.offset.set(0, 0);
+                    wallTexture6.repeat.set(1, 10);
+                });
+                var wallMaterial6 = new THREE.MeshBasicMaterial({
+                    map: wallTexture6,
+                    side: THREE.DoubleSide
+                });
+
+                var wall7Mesh = new THREE.Mesh(new THREE.PlaneGeometry(1,10), wallMaterial6);
+                wall7Mesh.position.y = 5;
+                wall7Mesh.position.z = -20;
+                wall7Mesh.position.x = -0.5;
+
+                scene.add(wall7Mesh);
+
+                var wallTexture7 = loader.load('images/brickred.png', function (wallTexture7) {
+                    wallTexture7.wrapS = wallTexture7.wrapT = THREE.RepeatWrapping;
+                    wallTexture7.offset.set(0, 0);
+                    wallTexture7.repeat.set(4, 3);
+                });
+                var wallMaterial7 = new THREE.MeshBasicMaterial({
+                    map: wallTexture7,
+                    side: THREE.DoubleSide
+                });
+
+                var wall8Mesh = new THREE.Mesh(new THREE.PlaneGeometry(4,3), wallMaterial7);
+                wall8Mesh.position.y = 10-1.5;
+                wall8Mesh.position.z = -20;
+                wall8Mesh.position.x = -3;
+
+                scene.add(wall8Mesh);
+
+            }
+
+            function drawBathroomWalls(){
+                var bathroomWallMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+
+                var bathWall1Mesh = new THREE.Mesh(new THREE.PlaneGeometry(9,10), bathroomWallMaterial);
+                bathWall1Mesh.position.y = 5;
+                bathWall1Mesh.position.x = -15 + 4.5;
+
+                scene.add(bathWall1Mesh);
+
+                var bathWall2Mesh = new THREE.Mesh(new THREE.PlaneGeometry(4,10), bathroomWallMaterial);
+                bathWall2Mesh.rotation.y = Math.PI / 2;
+                bathWall2Mesh.position.y = 5;
+                bathWall2Mesh.position.x = -15 + 9;
+                bathWall2Mesh.position.z = -2;
+
+                scene.add(bathWall2Mesh);
+
+                var bathWall3Mesh = new THREE.Mesh(new THREE.PlaneGeometry(12,10), bathroomWallMaterial);
+                bathWall3Mesh.rotation.y = Math.PI /2;
+                bathWall3Mesh.position.y = 5;
+                bathWall3Mesh.position.x = -15 + 9;
+                bathWall3Mesh.position.z = -20 + 6;
+
+                scene.add(bathWall3Mesh);
+
+                var bathWall4Mesh = new THREE.Mesh(new THREE.PlaneGeometry(4,3), bathroomWallMaterial);
+                bathWall4Mesh.rotation.y  = Math.PI /2;
+                bathWall4Mesh.position.y = 10 - 1.5;
+                bathWall4Mesh.position.x = -15 + 9;
+                bathWall4Mesh.position.z = -6;
+
+                scene.add(bathWall4Mesh);
+
+            }
+
+            function drawLamp(){
+                var mtlLoader = new THREE.MTLLoader();
+                mtlLoader.setTexturePath("lamp/");
+                mtlLoader.setPath('lamp/');
+                var url = "twin_wall_lamp.mtl";
+                mtlLoader.load( url, function( materials ) {
+                
+                    materials.preload();
+                
+                    var objLoader = new THREE.OBJLoader();
+                    objLoader.setMaterials( materials );
+                    objLoader.setPath( 'lamp/' );
+                    objLoader.load( 'twin wall lamp.obj', function ( object ) {
+                
+                        object.position.y = 5;
+                        object.position.z = 5;
+                        object.scale = new THREE.Vector3(0.1,0.1,0.1);
+                        scene.add( object );
+                
+                    } );
+                
+                });
+            }
+
+            //Creating skybox following tutorial from https://jeremypwalton.wordpress.com/2014/09/19/skybox-in-three-js/
+            //Using a cubemap that I sliced up myself into 6 individual images, original image http://www.f-lohmueller.de/pov_tut/backgrnd/im/Cubemap_2_2048x1536.jpg
+            function addSkybox() {
+
+                var materialArray = [];
+                materialArray.push(new THREE.MeshBasicMaterial({ map: loader.load('images/skybox_zpos.png') }));
+                materialArray.push(new THREE.MeshBasicMaterial({ map: loader.load('images/skybox_zneg.png') }));
+                materialArray.push(new THREE.MeshBasicMaterial({ map: loader.load('images/skybox_ypos.png') }));
+                materialArray.push(new THREE.MeshBasicMaterial({ map: loader.load('images/skybox_yneg.png') }));
+                materialArray.push(new THREE.MeshBasicMaterial({ map: loader.load('images/skybox_xpos.png') }));
+                materialArray.push(new THREE.MeshBasicMaterial({ map: loader.load('images/skybox_xneg.png') }));
+                for (var i = 0; i < 6; i++) {
+                    materialArray[i].side = THREE.BackSide;
+                }
+                var skyboxGeom = new THREE.CubeGeometry(1000, 1000, 1000, 1, 1, 1);
+                var skybox = new THREE.Mesh(skyboxGeom, materialArray);
+                scene.add(skybox);
+            }
+
+            function render() {
+                requestAnimationFrame(render);
+                controls.update();
+                renderer.render(scene, camera);
+            }
+
+
+
+        </script>
+</body>
+
+</html>

@@ -1,0 +1,317 @@
+<!DOCTYPE html> 
+   <!-- The previous line tells the browser, that the page uses the HTML5 standard. --> 
+<html>
+    <head>
+        <title>L system demonstration</title>
+		<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1"> 
+		<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1"> 
+		
+    </head>
+        <script src="js/three.min.js"></script>
+		<script src="js/OrbitControls.js"></script>
+<body>
+	
+<div id="overlaytext" style="position: absolute; top: -20px; left: 100px"> 
+<canvas id="canvas"  width="800" height="600"></canvas>
+
+<h2>Lindenmayer Systems</h2>
+<p> You will see a green tree on the screen. Try to complete the following tasks and see the visual effects generated.
+    <ol>
+     <li> Different tree modeling: Change various parameters and rule and see what happens. Hints: 7 rules altogether are provided and the rule number can be changed in setRules1();  
+     <li> Irregular tree modeling: Modify the code so that the step size will change slightly randomly. Hints: a small change could be added to the step, 
+	      for example, if(Math.random() >0.5), then step += 0.02; otherwise step -= 0.02;   	 
+     <li> Modify the code so that the line width changes inversely with the number of generations increasing. 
+	      Hints: the width of the branch has to be changed and  
+	      defined as a function of when a symbol appears in the string for the representation of the tree to be generated. 
+		  The later it appears, the younger the branch will be. 
+		  Thus, the width of a branch will be an decreasing function of the appearance of the symbol in the string 
+		  for the representation of the tree to be generated. The simplest case is lineWidth=step/(j+5)+1; 
+		  where j is the index for a symbol to appear in the tree string. 
+		  The drawLine method needs to be extended to take the argument of width as: drawLine(x0, y0, x, y, lineWidth);   
+	 <li> Modify the code so that the color of the tree branch changes in such a way that the later it grows, 
+	 the brighter it appears (to reflect the age of the branch). Hints: the color of the branch has to be changed and  
+	      defined as a function of when a symbol appears in the string for the representation of the tree to be generated. 
+		  The later it appears, the younger the branch will be. 
+		  Thus, the color of a branch will be an increasing function of the appearance of the symbol in the string 
+		  for the representation of the tree generated. The simplest case is greencolor=Math.floor((j+5)/(lenght+5)*255);
+		  The color of the branch can be defined as: lineColor = "rgb(" + r + "," + g + "," + b + ")"; where r=0; and b=0; 
+		  The drawLine method needs to be extended to take the argument of color as: drawLine(x0, y0, x, y, lineColor); 
+     <li> Many tree modeling: Modify the code so that multiple trees can be generated at different positions. Hints: 
+	      the tree positions can be randomly generated as, for example, trees[0]
+		  =new THREE.Vector2(c.width/1.6 * Math.random() + c.width*0.3, c.height/2 * Math.random() + c.height/2);
+		  Then the tree can be drawn as drawTree(trees[0].x, trees[0].y);
+     </ol>
+ </p>
+</div>
+
+ <script>
+/*
+Copyright (c) 2014 Mikhail Chernov (http://codepen.io/mikkamikka)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
+
+var c, ctx;
+var rules = new Rules();
+var params = new Params();
+var colors = new Colors();
+var Plant = '';
+var width, height;
+var tree, lineWidth, lineColor;
+
+var trees=[];
+
+main();
+
+function main () {
+ c=document.getElementById("canvas");
+ ctx=c.getContext("2d");
+ trees[0] = new THREE.Vector2(c.width/1.6 * Math.random() + c.width * 0.3, c.height/2*Math.random() + c.height/2);
+  trees[1] = new THREE.Vector2(c.width/1.6 * Math.random() + c.width * 0.3, c.height/2*Math.random() + c.height/2);
+  trees[2] = new THREE.Vector2(c.width/1.6 * Math.random() + c.width * 0.3, c.height/2*Math.random() + c.height/2);
+ 
+ 
+ 
+ width = c.width;
+ height = c.height;
+
+ctx.fillStyle = "#000000"; //"rgba(1, 1, 1, 1)";
+ctx.fillRect(0, 0, width, height);
+//ctx.fill();
+ 
+ 
+ 
+ lineWidth=3;
+ lineColor="#00ff00";
+ 
+ setRules1();   
+ 
+ 
+ for(var i = 0; i < trees.length; i++){
+ drawTree(trees[i].x, trees[i].y);
+ }
+ 
+ //console.log(width);
+
+ animate();
+
+//=========================== events
+
+}
+
+function Params() {
+  this.iterations= 7;
+  this.delta= 18; // incremental angle
+  this.thetaRandomness= 0;
+  this.alpha= 90;  // heading direction
+  if(Math.random() > 0.5){
+	this.step= 5.02;
+	}else{
+	
+	 this.step= 4.98;  // branch length
+	}
+  
+  
+ 
+  this.scaleRandomness= 0;
+  this.constantWidth= false;
+  this.slope = 0;
+}
+function Colors() {
+  this.background = "#ffffff";
+  this.general = "#000000";
+  this.random= false;
+  this.alpha= 0.8;
+}
+function Rules()  {
+  this.axiom = 'F';
+  this.mainRule = 'FF-[-F+F+F]+[+F-F-F]';
+  this.Rule2 = '';
+}
+
+function drawLine(x, y, x0, y0, lw, green) {
+  ctx.beginPath();
+  ctx.moveTo(x,y);
+  ctx.lineTo(x0,y0);
+  var r, b = 0;
+  ctx.strokeStyle = "rgb(0,"+green+",0)";
+  ctx.lineWidth = lw;
+  ctx.stroke();
+}
+
+function GetAxiomTree() {
+    var Waxiom = rules.axiom;
+    var newF = rules.mainRule;
+    var newf = 'ff';
+    var newx = rules.Rule2;
+    var level = params.iterations;
+    
+    while (level > 0) {        
+        var T = '';   
+        for (var j=0; j < Waxiom.length; j++) {
+            var a = Waxiom[j];
+            if (a == 'F'){T += newF;}
+            else
+              if (a == 'f'){T += newf;}
+              else                   
+                if (a == 'X'){T += newx;}
+                else
+                   T += a;
+        }
+        Waxiom = T;
+        level--;
+    }
+    return Waxiom;
+}
+
+ function drawTree(x, y) {
+ 
+    Plant = GetAxiomTree();
+	
+    var n = Plant.length;
+    var stackX = [], stackY = [], stackA = [];    
+    var delta = params.delta * Math.PI / 180; 
+    var step = params.step;
+    var alpha = - params.alpha * Math.PI / 180;    
+    var x, y;  
+    var x0 = x, y0 = y;  
+	
+var jCount = 0;
+   
+  for (var j=0; j<Plant.length; j++){   
+        //console.log(Plant.length);
+        var a = Plant[j];
+		
+		if(a == "j"){
+		jCount++;
+		}
+		
+        if (a == "+") {alpha -= delta;}
+        if (a == "-") {alpha += delta;}
+        // move forward and draw a line
+        if (a == "F") {
+            x = x0 + Math.cos(alpha)*step;
+            y = y0 + Math.sin(alpha)*step;
+            console.log(Math.floor((jCount)/(Plant.length)*10*255));
+            drawLine(x0,y0, x, y, (step / (jCount )) + 1, Math.floor((jCount)/(Plant.length)*10*255) +30) ;           
+            x0 = x; y0 = y;
+        }        
+        // move without drawing a line
+        if (a == "f") {
+            x0 = x0 + Math.cos(alpha)*step;
+            y0 = y0 + Math.sin(alpha)*step;
+        }
+        if (a == "[") {
+            stackX.push(x0);
+            stackY[stackY.length] =  y0;
+            stackA[stackA.length] = alpha;       
+          
+        }
+        if (a == "]"){
+            x0 = stackX.pop();
+            y0 = stackY.pop();
+            alpha = stackA.pop();
+        } 
+		
+		
+      
+    }
+  
+};
+
+function animate() {
+	requestAnimationFrame( animate );
+	
+   drawTree(width/2, height*9/10); // draw the tree at the initial position 
+  
+  //console.log(width);
+}
+
+//=========================== rules setters
+function setRules1(){
+  rules.axiom = "F";
+  rules.mainRule = "jFF-[-F+F+F]+[+F-F-F]";
+  params.iterations = 4;
+  params.delta = 20;
+  params.step = 8; 
+if(Math.random() > 0.5){
+params.step += 0.02;
+}else{
+params.step -= 0.02;
+}
+  Plant = GetAxiomTree();
+}
+function setRules2(){
+  //rules.axiom = "F[+F+F][-F-F][++F][--F]F";
+  rules.axiom = "F[F]+[F]+[F]---[F]-[F]";
+  rules.mainRule = "FF[++F][+F][F][-F][--F]";
+  params.iterations = 3;
+  params.delta = 20;
+  params.step = 10;  
+   Plant = GetAxiomTree();
+}
+function setRules3(){
+  rules.axiom = "F++[F]--[F]-[F]-[F]";
+  rules.mainRule = "FF++[F[F-F]]--[+F[--F]][---F[-F]]F[-F][F]";
+  params.iterations = 3;
+  params.delta = 15;
+  params.step = 3;  
+   Plant = GetAxiomTree();
+}
+function setRules4() {
+  rules.axiom = "X";
+  rules.mainRule = "FF";
+  rules.Rule2 = "F[+X]F[-X]+X";  
+  params.iterations = 5;
+  params.delta = 20;
+  params.step = 4;  
+   Plant = GetAxiomTree();
+}
+function setRules5(){
+  rules.axiom = "X";
+  rules.mainRule = "FF";
+  rules.Rule2 = "F[+X][-X]FX";
+  params.iterations = 6;
+  params.delta = 25;
+  params.step = 2.;  
+   Plant = GetAxiomTree();
+}
+function setRules6(){
+  rules.axiom = "X";
+  rules.mainRule = "FF";
+  rules.Rule2 = "F-[[X]+X]+F[+FX]-X";
+  params.iterations = 5;
+  params.delta = 25;
+  params.step = 3;  
+   Plant = GetAxiomTree();
+}
+
+// http://www.cas.mcmaster.ca/~kahl/CAS701/2007/P/Lindenmayer.pdf
+function setRules7(){
+  rules.axiom = "F";
+  rules.mainRule = "F[+F]F[-F]F";
+  rules.Rule2 = "";
+  params.iterations = 4;
+  params.delta = 25;
+  params.step = 2.5;  
+   Plant = GetAxiomTree();
+}
+        </script>
+    </body>
+</html>
