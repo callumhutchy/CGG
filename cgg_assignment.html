@@ -180,7 +180,25 @@
                 scene.add(kitchenExWideWall1Mesh);
                 scene.add(kitchenExWideWall2Mesh);
 
+                //Kitchen Windows
 
+                var kitchenWindowMaterial = new THREE.MeshBasicMaterial({color:0x13a4fb, side: THREE.DoubleSide});
+                kitchenWindowMaterial.transparent = true;
+                kitchenWindowMaterial.opacity = 0.3;
+
+                var kitchenWindow1Mesh = new THREE.Mesh(new THREE.PlaneGeometry(14,3), kitchenWindowMaterial);
+                kitchenWindow1Mesh.rotation.y = Math.PI / 2;
+                kitchenWindow1Mesh.position.y = 5;
+                kitchenWindow1Mesh.position.x = 15;
+                kitchenWindow1Mesh.position.z = -10;
+
+                var kitchenWindow2Mesh = new THREE.Mesh(new THREE.PlaneGeometry(9,3), kitchenWindowMaterial);
+                kitchenWindow2Mesh.position.y = 5;
+                kitchenWindow2Mesh.position.z = -20;
+                kitchenWindow2Mesh.position.x = 7.5;
+
+                scene.add(kitchenWindow1Mesh);
+                scene.add(kitchenWindow2Mesh);
 
                 //Kitchen Interior Walls
                 var kitchenWallMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
