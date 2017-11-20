@@ -27,6 +27,7 @@
 <script src="js/OrbitControls.js"></script>
 <script src="js/MTLLoader.js"></script>
 <script src="js/OBJLoader.js"></script>
+<script src="js/Tween.js"></script>
 <!-- Library for more accurate inner window sizing https://github.com/tysonmatanich/viewportSize -->
 <script src="js/viewportSize-min.js"></script>
 
@@ -38,10 +39,16 @@
             var scene, camera, renderer, controls;
             var testLight;
             var width, height;
+
+            var doors = [];
+            var raycaster, INTERSECTED;
+            var mouseClick = new THREE.Vector2();
+            var mouse = new THREE.Vector2();
+
             width = viewportSize.getWidth();
             height = viewportSize.getHeight();
             var loader = new THREE.TextureLoader();
-            
+
             main();
             render();
 
@@ -57,6 +64,8 @@
 
                 renderer.setSize(width, height);
 
+                raycaster = new THREE.Raycaster();
+
                 document.getElementById("WebGLCanvas").appendChild(renderer.domElement);
 
                 camera.position.z = 20;
@@ -70,6 +79,10 @@
                 drawDoors();
                 drawLamp();
                 addSkybox();
+
+                window.addEventListener("mousemove", onDocumentMouseMove, false);
+                window.addEventListener("click", onDocumentClick, false);
+
             }
 
             function drawFloor() {
@@ -419,17 +432,18 @@
                 });
             }
 
-            function drawDoors(){
+            function drawDoors() {
 
-                var doorMaterial =  new THREE.MeshLambertMaterial();
+                var doorMaterial = new THREE.MeshLambertMaterial();
                 doorMaterial.color = new THREE.Color(0x714905);
                 doorMaterial.side = THREE.DoubleSide;
 
-                var kitchenDoor = new THREE.Mesh(new THREE.PlaneGeometry(4,7), doorMaterial);
+                var kitchenDoor = new THREE.Mesh(new THREE.PlaneGeometry(4, 7), doorMaterial);
                 kitchenDoor.rotation.y = Math.PI / 2;
                 kitchenDoor.position.y = 3.5;
                 kitchenDoor.position.z = -6;
-
+                kitchenDoor.name = "kitchendoor";
+                doors.push(kitchenDoor);
                 scene.add(kitchenDoor);
 
 
@@ -454,7 +468,14 @@
                 scene.add(skybox);
             }
 
-            function render() {
+            function render(time) {
+                // let Tween engine know it is time to animate stuff
+                TWEEN.update(time);
+
+
+                // handle mouseover interactions
+
+
                 requestAnimationFrame(render);
                 controls.update();
                 renderer.render(scene, camera);
@@ -472,24 +493,46 @@
                 var intersects = raycaster.intersectObjects(scene.children);
                 var degToRad = Math.PI / 180;
 
-                // make clicked things open/close with a tweened animation
-                intersects.forEach(clickedObject => {
-                    // is door open or closed already?
-                    var targetAngle = clickedObject.object.rotation.y === -100 * degToRad
-                        ? 0
-                        : -100 * degToRad;
+                console.log(intersects);
 
-                    new TWEEN.Tween(clickedObject.object.rotation)
-                        .easing(TWEEN.Easing.Circular.Out)
-                        .to(
-                        {
-                            y: targetAngle
-                        },
-                        500
-                        )
-                        .start();
-                });
+
+                // make clicked things open/close with a tweened animation
+
+                if (intersects.length > 0) {
+                    clickedObject = intersects[0];
+
+                    //If door is not open
+                    if (clickedObject.object.name.includes("door") && !clickedObject.object.name.includes("open")) {
+
+                        var openEuler = new THREE.Euler(2 / Math.PI, 'Y');
+                        clickedObject.object.rotation.set(2 / Math.PI, 'Y');
+
+                        clickedObject.object.name += "open";
+
+                    //If door is already open
+                    } else if (clickedObject.object.name.includes("door") && clickedObject.object.name.includes("open")) {
+                        console.log(clickedObject.object.name);
+
+
+                        clickedObject.object.name = "door";
+                    }
+
+
+
+                }
+
+
+
+
+
+
             }
+
+            function onDocumentMouseMove(event) {
+                mouse.x = event.clientX / window.innerWidth * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            }
+
 
 
         </script>
