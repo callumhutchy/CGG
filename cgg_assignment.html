@@ -43,7 +43,6 @@
             var doors = [];
             var raycaster, INTERSECTED;
             var mouseClick = new THREE.Vector2();
-            var mouse = new THREE.Vector2();
 
             width = viewportSize.getWidth();
             height = viewportSize.getHeight();
@@ -80,7 +79,6 @@
                 drawLamp();
                 addSkybox();
 
-                window.addEventListener("mousemove", onDocumentMouseMove, false);
                 window.addEventListener("click", onDocumentClick, false);
 
             }
@@ -505,7 +503,7 @@
                     if (clickedObject.object.name.includes("door") && !clickedObject.object.name.includes("open")) {
 
                         var openEuler = new THREE.Euler(2 / Math.PI, 'Y');
-                        clickedObject.object.rotation.set(2 / Math.PI, 'Y');
+                        clickedObject.object.rotation.set(clickedObject.object.rotation + (2 / Math.PI), 'Y');
 
                         clickedObject.object.name += "open";
 
@@ -517,21 +515,10 @@
                         clickedObject.object.name = "door";
                     }
 
-
-
                 }
 
-
-
-
-
-
             }
 
-            function onDocumentMouseMove(event) {
-                mouse.x = event.clientX / window.innerWidth * 2 - 1;
-                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-            }
 
 
 
