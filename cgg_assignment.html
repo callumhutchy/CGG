@@ -52,11 +52,17 @@
             render();
 
             function main() {
-                testLight = new THREE.DirectionalLight(0xffffff, 0.5);
+                //testLight = new THREE.DirectionalLight(0xffffff, 0.5);
+                  //scene.add(testLight);
+                
                 scene = new THREE.Scene();
                 camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+                livingRoomLight = new THREE.PointLight(0xffffff, 2, 100, 2);
+                livingRoomLight.position.set(0,5,19);
+                scene.add(livingRoomLight);
+                
                 renderer = new THREE.WebGLRenderer();
-                scene.add(testLight);
+              
 
                 var axisHelper = new THREE.AxisHelper(20);
                 scene.add(axisHelper);
@@ -213,7 +219,7 @@
                 scene.add(kitchenWindow2Mesh);
 
                 //Kitchen Interior Walls
-                var kitchenWallMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+                var kitchenWallMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff, side: THREE.DoubleSide });
 
                 var kitchenWall1Mesh = new THREE.Mesh(new THREE.PlaneGeometry(12, 10), kitchenWallMaterial);
                 kitchenWall1Mesh.rotation.y = Math.PI / 2;
