@@ -36,13 +36,54 @@
     <div id="WebGLCanvas">
 
         <script>
+            //Rendering vars
             var scene, camera, renderer, controls;
-            var testLight;
             var width, height;
 
+            //Controls for door operation
             var doors = [];
             var raycaster, INTERSECTED;
             var mouseClick = new THREE.Vector2();
+
+            //Player controllers variables
+            var controlsEnabled = false;
+            var moveForward = false;
+            var moveBackward = false;
+            var moveLeft = false;
+            var moveRight = false;
+
+            var prevTime = performance.now();
+            var velocity = new THREE.Vector3();
+            var direction = new THREE.Vector3();
+
+            var element = document.body;
+
+            var pointerlockchange = function (event) {
+
+                if (document.pointerLockElement === element || document.mozPointerLockElement === element || document.webkitPointerLockElement === element) {
+
+                    controlsEnabled = true;
+                    controls.enabled = true;
+
+                    blocker.style.display = 'none';
+
+                } else {
+
+                    controls.enabled = false;
+
+                    blocker.style.display = 'block';
+
+                    instructions.style.display = '';
+
+                }
+
+            };
+
+            var pointerlockerror = function (event) {
+
+                instructions.style.display = '';
+
+            };
 
             width = viewportSize.getWidth();
             height = viewportSize.getHeight();
@@ -53,16 +94,16 @@
 
             function main() {
                 //testLight = new THREE.DirectionalLight(0xffffff, 0.5);
-                  //scene.add(testLight);
-                
+                //scene.add(testLight);
+
                 scene = new THREE.Scene();
                 camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-                livingRoomLight = new THREE.PointLight(0xffffff, 2, 100, 2);
-                livingRoomLight.position.set(0,5,19);
-                scene.add(livingRoomLight);
-                
+
+
+
+
                 renderer = new THREE.WebGLRenderer();
-              
+
 
                 var axisHelper = new THREE.AxisHelper(20);
                 scene.add(axisHelper);
@@ -77,15 +118,80 @@
 
                 controls = new THREE.OrbitControls(camera);
 
+                addLights();
                 drawFloor();
+                drawGarden();
+                drawRoof();
                 drawKitchenWalls();
                 drawLivingRoomWalls();
                 drawBathroomWalls();
                 drawDoors();
-                drawLamp();
-                addSkybox();
+                //addSkybox();
 
                 window.addEventListener("click", onDocumentClick, false);
+
+            }
+
+            function addLights() {
+
+                livingRoomLight = new THREE.PointLight(0xffffff, 1, 100, 2);
+                livingRoomLight.position.set(-2, 5, 10);
+
+                frontDoorLight1 = new THREE.PointLight(0xffffff, 1, 100, 2);
+                frontDoorLight2 = new THREE.PointLight(0xffffff, 1, 100, 2);
+
+                frontDoorLight1.position.set(17, 6, 3);
+                frontDoorLight2.position.set(17, 6, 17);
+
+                scene.add(frontDoorLight1);
+                scene.add(frontDoorLight2);
+                scene.add(livingRoomLight);
+            }
+
+            function drawGarden() {
+                var gardenTexture = loader.load('images/grass_top.png', function (gardenTexture) {
+                    gardenTexture.wrapS = gardenTexture.wrapT = THREE.RepeatWrapping;
+                    gardenTexture.offset.set(0, 0);
+                    gardenTexture.repeat.set(15, 20);
+                });
+
+                var gardenMaterial = new THREE.MeshLambertMaterial({
+                    color: 0xffffff,
+                    specular: 0x111111,
+                    shininess: 10,
+                    map: gardenTexture,
+                    side: THREE.DoubleSide
+                });
+
+                var gardenGeo = new THREE.PlaneGeometry(30, 40);
+
+                var garden1 = new THREE.Mesh(gardenGeo, gardenMaterial);
+                var garden2 = new THREE.Mesh(gardenGeo, gardenMaterial);
+                var garden3 = new THREE.Mesh(gardenGeo, gardenMaterial);
+                var garden4 = new THREE.Mesh(gardenGeo, gardenMaterial);
+                var garden5 = new THREE.Mesh(gardenGeo, gardenMaterial);
+                var garden6 = new THREE.Mesh(gardenGeo, gardenMaterial);
+                var garden7 = new THREE.Mesh(gardenGeo, gardenMaterial);
+                var garden8 = new THREE.Mesh(gardenGeo, gardenMaterial);
+
+                garden1.position.x = garden2.position.x = garden8.position.x = 30;
+                garden4.position.x = garden5.position.x = garden6.position.x = -30;
+
+                garden2.position.z = garden3.position.z = garden4.position.z = 40;
+                garden6.position.z = garden7.position.z = garden8.position.z = -40;
+
+                garden1.rotation.x = garden2.rotation.x = garden3.rotation.x = garden4.rotation.x = garden5.rotation.x = garden6.rotation.x = garden7.rotation.x = garden8.rotation.x = Math.PI / 2;
+
+                scene.add(garden1);
+                scene.add(garden2);
+                scene.add(garden3);
+                scene.add(garden4);
+                scene.add(garden5);
+                scene.add(garden6);
+                scene.add(garden7);
+                scene.add(garden8);
+
+
 
             }
 
@@ -97,7 +203,7 @@
                     floorTexture.offset.set(0, 0);
                     floorTexture.repeat.set(15, 20);
                 });
-                var floorMaterial = new THREE.MeshPhongMaterial({
+                var floorMaterial = new THREE.MeshLambertMaterial({
                     color: 0xffffff,
                     specular: 0x111111,
                     shininess: 10,
@@ -111,6 +217,19 @@
                 scene.add(floorMesh);
             }
 
+            function drawRoof() {
+                var roofMaterial = new THREE.MeshLambertMaterial({ color: 0x353638, side: THREE.DoubleSide });
+
+                var roofGeom = new THREE.Geometry();
+
+                var flatRoof = new THREE.Mesh(new THREE.PlaneGeometry(30, 40), roofMaterial);
+                flatRoof.rotation.x = Math.PI / 2;
+                flatRoof.position.y = 10;
+
+                scene.add(flatRoof);
+
+            }
+
             function drawKitchenWalls() {
 
                 //Kitchen Exterior Walls
@@ -119,7 +238,7 @@
                     kitchenExteriorTallWallTexture.offset.set(0, 0);
                     kitchenExteriorTallWallTexture.repeat.set(3, 10);
                 });
-                var kitchenExteriorTallWallMaterial = new THREE.MeshBasicMaterial({
+                var kitchenExteriorTallWallMaterial = new THREE.MeshLambertMaterial({
                     map: kitchenExteriorTallWallTexture,
                     side: THREE.DoubleSide
                 });
@@ -129,7 +248,7 @@
                     kitchenExteriorWideWall1Texture.offset.set(0, 0);
                     kitchenExteriorWideWall1Texture.repeat.set(14, 3.5);
                 });
-                var kitchenExteriorWideWall1Material = new THREE.MeshBasicMaterial({
+                var kitchenExteriorWideWall1Material = new THREE.MeshLambertMaterial({
                     map: kitchenExteriorWideWall1Texture,
                     side: THREE.DoubleSide
                 });
@@ -139,7 +258,7 @@
                     kitchenExteriorWideWall2Texture.offset.set(0, 0);
                     kitchenExteriorWideWall2Texture.repeat.set(9, 3.5);
                 });
-                var kitchenExteriorWideWall2Material = new THREE.MeshBasicMaterial({
+                var kitchenExteriorWideWall2Material = new THREE.MeshLambertMaterial({
                     map: kitchenExteriorWideWall2Texture,
                     side: THREE.DoubleSide
                 });
@@ -219,7 +338,7 @@
                 scene.add(kitchenWindow2Mesh);
 
                 //Kitchen Interior Walls
-                var kitchenWallMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+                var kitchenWallMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide });
 
                 var kitchenWall1Mesh = new THREE.Mesh(new THREE.PlaneGeometry(12, 10), kitchenWallMaterial);
                 kitchenWall1Mesh.rotation.y = Math.PI / 2;
@@ -254,7 +373,7 @@
                     wallTexture1.offset.set(0, 0);
                     wallTexture1.repeat.set(3, 10);
                 });
-                var wallMaterial1 = new THREE.MeshBasicMaterial({
+                var wallMaterial1 = new THREE.MeshLambertMaterial({
                     map: wallTexture1,
                     side: THREE.DoubleSide
                 });
@@ -264,7 +383,7 @@
                     wallTexture2.offset.set(0, 0);
                     wallTexture2.repeat.set(8, 3);
                 });
-                var wallMaterial2 = new THREE.MeshBasicMaterial({
+                var wallMaterial2 = new THREE.MeshLambertMaterial({
                     map: wallTexture2,
                     side: THREE.DoubleSide
                 });
@@ -296,7 +415,7 @@
                     wallTexture3.offset.set(0, 0);
                     wallTexture3.repeat.set(30, 10);
                 });
-                var wallMaterial3 = new THREE.MeshBasicMaterial({
+                var wallMaterial3 = new THREE.MeshLambertMaterial({
                     map: wallTexture3,
                     side: THREE.DoubleSide
                 });
@@ -312,7 +431,7 @@
                     wallTexture4.offset.set(0, 0);
                     wallTexture4.repeat.set(30, 10);
                 });
-                var wallMaterial4 = new THREE.MeshBasicMaterial({
+                var wallMaterial4 = new THREE.MeshLambertMaterial({
                     map: wallTexture4,
                     side: THREE.DoubleSide
                 });
@@ -329,7 +448,7 @@
                     wallTexture5.offset.set(0, 0);
                     wallTexture5.repeat.set(10, 10);
                 });
-                var wallMaterial5 = new THREE.MeshBasicMaterial({
+                var wallMaterial5 = new THREE.MeshLambertMaterial({
                     map: wallTexture5,
                     side: THREE.DoubleSide
                 });
@@ -346,7 +465,7 @@
                     wallTexture6.offset.set(0, 0);
                     wallTexture6.repeat.set(1, 10);
                 });
-                var wallMaterial6 = new THREE.MeshBasicMaterial({
+                var wallMaterial6 = new THREE.MeshLambertMaterial({
                     map: wallTexture6,
                     side: THREE.DoubleSide
                 });
@@ -363,7 +482,7 @@
                     wallTexture7.offset.set(0, 0);
                     wallTexture7.repeat.set(4, 3);
                 });
-                var wallMaterial7 = new THREE.MeshBasicMaterial({
+                var wallMaterial7 = new THREE.MeshLambertMaterial({
                     map: wallTexture7,
                     side: THREE.DoubleSide
                 });
@@ -378,7 +497,7 @@
             }
 
             function drawBathroomWalls() {
-                var bathroomWallMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+                var bathroomWallMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide });
 
                 var bathWall1Mesh = new THREE.Mesh(new THREE.PlaneGeometry(9, 10), bathroomWallMaterial);
                 bathWall1Mesh.position.y = 5;
@@ -410,30 +529,6 @@
 
                 scene.add(bathWall4Mesh);
 
-            }
-
-            function drawLamp() {
-                var mtlLoader = new THREE.MTLLoader();
-                mtlLoader.setTexturePath("lamp/");
-                mtlLoader.setPath('lamp/');
-                var url = "twin_wall_lamp.mtl";
-                mtlLoader.load(url, function (materials) {
-
-                    materials.preload();
-
-                    var objLoader = new THREE.OBJLoader();
-                    objLoader.setMaterials(materials);
-                    objLoader.setPath('lamp/');
-                    objLoader.load('twin wall lamp.obj', function (object) {
-
-                        object.position.y = 5;
-                        object.position.z = 5;
-                        object.scale = new THREE.Vector3(0.1, 0.1, 0.1);
-                        scene.add(object);
-
-                    });
-
-                });
             }
 
             function drawDoors() {
@@ -509,11 +604,11 @@
                     if (clickedObject.object.name.includes("door") && !clickedObject.object.name.includes("open")) {
 
                         var openEuler = new THREE.Euler(2 / Math.PI, 'Y');
-                        clickedObject.object.rotation.set(clickedObject.object.rotation + (2 / Math.PI), 'Y');
+                        clickedObject.object.rotation.set(clickedObject.object.rotation + (2 / Math.PI), 'X');
 
                         clickedObject.object.name += "open";
 
-                    //If door is already open
+                        //If door is already open
                     } else if (clickedObject.object.name.includes("door") && clickedObject.object.name.includes("open")) {
                         console.log(clickedObject.object.name);
 
@@ -524,9 +619,6 @@
                 }
 
             }
-
-
-
 
         </script>
 </body>
