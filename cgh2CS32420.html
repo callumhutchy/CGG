@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- The previous line tells the browser, that the page uses the HTML5 standard. -->
 <html>
 
 <head>
@@ -7,7 +6,11 @@
     <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1">
     <!-- Main purpose of the small bit of CSS is to get rid of margins so that the canvas covers the full screen
-        Also removes scrollbars
+        Also:
+         removes scrollbars
+         Adds crosshair
+         Adds instruction text
+         Makes instructions and crosshair unselectable
     -->
     <style type="text/css">
         html,
@@ -19,27 +22,72 @@
 
         #WebGLCanvas {
             min-height: 100%;
+            position: absolute;
+            z-index: 8;
         }
+
+        #crosshair {
+            font-size: 50px;
+            position: absolute;
+            z-index: 10;
+            top: 50%;
+            left: 50%;
+            margin-top: -25px;
+            margin-left: -25px;
+            user-select: none;
+
+        }
+
+        #instructions{
+            font-size: 30px;
+            position: absolute;
+            z-index: 10;
+            top: 5%;
+            left: 10%;
+            user-select: none;
+        }
+        
+        *.unselectable {
+            -moz-user-select: -moz-none;
+            -khtml-user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
     </style>
 </head>
 
 <script src="js/three.min.js"></script>
-<script src="js/OrbitControls.js"></script>
-<script src="js/MTLLoader.js"></script>
-<script src="js/OBJLoader.js"></script>
-<script src="js/Tween.js"></script>
+<!-- Three.js provided library for locking the cursor for use with mouse look cameras -->
 <script src="js/PointerLockControls.js"></script>
+<!-- Library for creating fire https://github.com/yomotsu/VolumetricFire -->
+<script src="js/VolumetricFire.js"></script>
 <!-- Library for more accurate inner window sizing https://github.com/tysonmatanich/viewportSize -->
 <script src="js/viewportSize-min.js"></script>
-
 
 <body>
 
     <div id="WebGLCanvas">
+        <div id="instructions" unselectable="on" class="unselectable">
+            Controls the camera using W,A,S,D, clicking the screen will lock your curse press Esc to exit the lock
+            <br>
+            When close enough to a door it can be clicked and it will open, they can be closed in the same manner
+        </div>
+
+        <!-- This is the crosshair that is placed in the center of the screen and is made unselectable -->
+        <div id="crosshair" unselectable="on" class="unselectable">
+            +
+        </div>
 
     </div>
 
     <script>
+        //Volumetric Fire vars
+        VolumetricFire.texturePath = 'images/';
+        var clock = new THREE.Clock();
+        var fire;
+
         //Rendering vars
         var scene, camera, renderer, controls;
         var width, height;
@@ -48,9 +96,6 @@
         var doors = [];
         var raycaster, INTERSECTED;
         var mouseClick = new THREE.Vector2();
-
-
-        var objects = [];
 
         //Player controllers variables
         var controlsEnabled = false;
@@ -67,30 +112,21 @@
 
         var element = document.body;
 
+        //Code was modified from the misc_controls_pointerlock.html example provided by three.js
         var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
 
         if (havePointerLock) {
 
-
             var pointerlockchange = function (event) {
 
                 if (document.pointerLockElement === element || document.mozPointerLockElement === element || document.webkitPointerLockElement === element) {
-
                     controlsEnabled = true;
                     controls.enabled = true;
 
-
                 } else {
-
                     controls.enabled = false;
 
                 }
-
-            };
-
-            var pointerlockerror = function (event) {
-
-                instructions.style.display = '';
 
             };
 
@@ -98,47 +134,37 @@
             document.addEventListener('pointerlockchange', pointerlockchange, false);
             document.addEventListener('mozpointerlockchange', pointerlockchange, false);
             document.addEventListener('webkitpointerlockchange', pointerlockchange, false);
-
-            document.addEventListener('pointerlockerror', pointerlockerror, false);
-            document.addEventListener('mozpointerlockerror', pointerlockerror, false);
-            document.addEventListener('webkitpointerlockerror', pointerlockerror, false);
-
-
-
         }
+        //End of code from misc_controls_pointerlock.html
 
         width = viewportSize.getWidth();
         height = viewportSize.getHeight();
+
+        //Texture loader used throughout the file for loading textures
         var loader = new THREE.TextureLoader();
 
         main();
         render();
 
-
         function main() {
-            //testLight = new THREE.DirectionalLight(0xffffff, 0.5);
-            //scene.add(testLight);
-
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-            
+
             controls = new THREE.PointerLockControls(camera);
             scene.add(controls.getObject());
 
-
             renderer = new THREE.WebGLRenderer();
-
-            var axisHelper = new THREE.AxisHelper(20);
-            scene.add(axisHelper);
-
+            renderer.shadowMap.enable = true;
+            renderer.shadowMap.renderReverseSided = false;
             renderer.setSize(width, height);
 
+            //Raycaster used to detect clicks for opening doors
             raycaster = new THREE.Raycaster();
 
             document.getElementById("WebGLCanvas").appendChild(renderer.domElement);
-          
-            controls.getObject().position.y = 5;
 
+            //Set the camera/controls height
+            controls.getObject().position.set(7,5,10);
 
             var onKeyDown = function (event) {
 
@@ -147,7 +173,7 @@
                         moveForward = true;
                         break;
                     case 65: // a
-                        moveLeft = true; 
+                        moveLeft = true;
                         break;
                     case 83: // s
                         moveBackward = true;
@@ -181,8 +207,9 @@
             document.addEventListener('keydown', onKeyDown, false);
             document.addEventListener('keyup', onKeyUp, false);
 
-            //controls = new THREE.OrbitControls(camera);
+            window.addEventListener("click", onDocumentClick, false);
 
+            //Add all of the objects to the world
             addLights();
             drawFloor();
             drawGarden();
@@ -191,16 +218,237 @@
             drawLivingRoomWalls();
             drawBathroomWalls();
             drawDoors();
-            //addSkybox();
+            addFireplace();
+            addSofa();
 
-            window.addEventListener("click", onDocumentClick, false);
+
+
+        }
+
+        function render(time) {
+
+            requestAnimationFrame(render);
+
+            //Function was modified from the misc_controls_pointerlock.html example provided by three.js
+            //Modifications include: removal of a jump feature
+            if (controlsEnabled === true) {
+
+                var time = performance.now();
+                var delta = (time - prevTime) / 1000;
+
+                velocity.x -= velocity.x * 10.0 * delta;
+                velocity.z -= velocity.z * 10.0 * delta;
+
+                direction.z = Number(moveForward) - Number(moveBackward);
+                direction.x = Number(moveLeft) - Number(moveRight);
+                direction.normalize(); // this ensures consistent movements in all directions
+
+                if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * delta;
+                if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * delta;
+
+                controls.getObject().translateX(velocity.x * delta);
+                controls.getObject().translateZ(velocity.z * delta);
+
+                prevTime = time;
+
+            }
+
+            //Fire Animation
+            var elapsed = clock.getElapsedTime();
+            fire.update(elapsed);
+
+            renderer.render(scene, camera);
+        }
+
+        //Function that is used when the user clicks on the scene
+        function onDocumentClick(event) {
+            //Code modified from https://codepen.io/adamsullovey/pen/BoJrbb?editors=0010
+
+            // Ask the browser to lock the pointer
+            element.requestPointerLock = element.requestPointerLock || element.mozRequestPointerLock || element.webkitRequestPointerLock;
+            element.requestPointerLock();
+
+            mouseClick.x = event.clientX / window.innerWidth * 2 - 1;
+            mouseClick.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            // figure out which objects in the scene were clicked
+            raycaster.setFromCamera(mouseClick, camera);
+            var intersects = raycaster.intersectObjects(scene.children);
+            //End of code modified from https://codepen.io/adamsullovey/pen/BoJrbb?editors=0010
+
+            //Remove all elements that do not contain door in their name, this is so we only have to worry about processing any door we have intersected with
+            intersects.forEach(element => {
+                if (!element.object.name.includes('door')) {
+                    intersects.pop(element);
+                }
+            });
+
+            if (intersects.length > 0) {
+
+                clickedObject = intersects[0];
+
+                //If door is not open
+                if (clickedObject.object.name.includes("door") && !clickedObject.object.name.includes("open")) {
+                    //Append the door name with open to allow checking its state later
+                    clickedObject.object.rotation.y += Math.PI / 2.2;
+                    clickedObject.object.name += "open";
+                } else if (clickedObject.object.name.includes("door") && clickedObject.object.name.includes("open")) {
+                    //Rotate the door 90 degrees, if a door needs to open the other way then this can be fixed by translating the door
+                    clickedObject.object.rotation.y -= Math.PI / 2.2;
+                    clickedObject.object.name = "door";
+                }
+
+            }
+
+        }
+
+        /**
+         * The following functions are used to create the objects in the world, some of them are quite large
+         */
+
+        function addSofa() {
+            var sofaFeetTexture = loader.load('images/trunk_side.png', function (sofaFeetTexture) {
+                sofaFeetTexture.wrapS = sofaFeetTexture.wrapT = THREE.RepeatWrapping;
+                sofaFeetTexture.offset.set(0, 0);
+                sofaFeetTexture.repeat.set(1, 1);
+            });
+            var sofaFeetMaterial = new THREE.MeshLambertMaterial({
+                map: sofaFeetTexture
+            });
+            var sofaFeetGeom = new THREE.BoxGeometry(1, 1, 1);
+
+            var sofaFeet1 = new THREE.Mesh(sofaFeetGeom, sofaFeetMaterial);
+            sofaFeet1.position.set(-12, 0.5, 5);
+            scene.add(sofaFeet1);
+
+            var sofaFeet2 = new THREE.Mesh(sofaFeetGeom, sofaFeetMaterial);
+            sofaFeet2.position.set(-12, 0.5, 12);
+            scene.add(sofaFeet2);
+
+            var sofaFeet3 = new THREE.Mesh(sofaFeetGeom, sofaFeetMaterial);
+            sofaFeet3.position.set(-9, 0.5, 5);
+            scene.add(sofaFeet3);
+
+            var sofaFeet4 = new THREE.Mesh(sofaFeetGeom, sofaFeetMaterial);
+            sofaFeet4.position.set(-9, 0.5, 12);
+            scene.add(sofaFeet4);
+
+            var sofaFabricMaterial = new THREE.MeshLambertMaterial({
+                color: 0x910a0a
+            });
+
+            var sofaBottomCushionGeom = new THREE.BoxGeometry(5, 1, 8);
+            var sofaBottomCushionMesh = new THREE.Mesh(sofaBottomCushionGeom, sofaFabricMaterial);
+            sofaBottomCushionMesh.position.set(-10.5, 1.5, 8.5);
+            scene.add(sofaBottomCushionMesh);
+
+            var sofaArmGeom = new THREE.BoxGeometry(5, 2, 1);
+            var sofaArmMesh1 = new THREE.Mesh(sofaArmGeom, sofaFabricMaterial);
+            sofaArmMesh1.position.set(-10.5, 3, 12);
+            scene.add(sofaArmMesh1);
+            var sofaArmMesh2 = new THREE.Mesh(sofaArmGeom, sofaFabricMaterial);
+            sofaArmMesh2.position.set(-10.5, 3, 5);
+            scene.add(sofaArmMesh2);
+
+            var sofaBackCushionGeom = new THREE.BoxGeometry(1, 3, 6);
+            var sofaBackCushionMesh = new THREE.Mesh(sofaBackCushionGeom, sofaFabricMaterial);
+            sofaBackCushionMesh.position.set(-12.5, 3.5, 8.5);
+            scene.add(sofaBackCushionMesh);
+
+        }
+
+        function addFireplace() {
+            var baseAndMantleTexture = loader.load('images/stone.png', function (baseAndMantleTexture) {
+                baseAndMantleTexture.wrapS = baseAndMantleTexture.wrapT = THREE.RepeatWrapping;
+                baseAndMantleTexture.offset.set(0, 0);
+                baseAndMantleTexture.repeat.set(8, 4);
+            });
+
+            var baseAndMantleMaterial = new THREE.MeshLambertMaterial({
+                map: baseAndMantleTexture,
+                side: THREE.DoubleSide
+            });
+
+            var baseAndMantleGeo = new THREE.BoxGeometry(8, 0.5, 4);
+
+            var base = new THREE.Mesh(baseAndMantleGeo, baseAndMantleMaterial);
+            base.position.z = 17.99;
+            base.position.y = 0.25;
+
+            var mantle = new THREE.Mesh(baseAndMantleGeo, baseAndMantleMaterial);
+            mantle.position.z = 17.99;
+            mantle.position.y = 4;
+
+            scene.add(mantle);
+            scene.add(base);
+
+            var sidesTexture = loader.load('images/brick_grey.png', function (sidesTexture) {
+                sidesTexture.wrapS = sidesTexture.wrapT = THREE.RepeatWrapping;
+                sidesTexture.offset.set(0, 0);
+                sidesTexture.repeat.set(3, 4);
+            });
+
+            var sidesMaterial = new THREE.MeshLambertMaterial({
+                map: sidesTexture,
+                side: THREE.DoubleSide
+            })
+
+            var sidesGeo = new THREE.BoxGeometry(1, 3.5, 3.5);
+
+            var sidesLeft = new THREE.Mesh(sidesGeo, sidesMaterial);
+            sidesLeft.position.z = 18.249;
+            sidesLeft.position.y = 2.25;
+            sidesLeft.position.x = 3;
+
+            var sidesRight = new THREE.Mesh(sidesGeo, sidesMaterial);
+            sidesRight.position.z = 18.249;
+            sidesRight.position.y = 2.25;
+            sidesRight.position.x = -3;
+
+            scene.add(sidesRight);
+            scene.add(sidesLeft);
+
+            var chimneyTexture = loader.load('images/greystone.png', function (chimneyTexture) {
+                chimneyTexture.wrapS = chimneyTexture.wrapT = THREE.RepeatWrapping;
+                chimneyTexture.offset.set(0, 0);
+                chimneyTexture.repeat.set(2, 4);
+            });
+
+            var chimneyMaterial = new THREE.MeshLambertMaterial({
+                map: chimneyTexture,
+                side: THREE.DoubleSide
+            });
+
+            var chimneyStackGeo = new THREE.BoxGeometry(3, 5.75, 3);
+
+            var chimneyStack = new THREE.Mesh(chimneyStackGeo, chimneyMaterial);
+            chimneyStack.position.z = 18.49;
+            chimneyStack.position.y = 10 - (5.75 / 2);
+
+            scene.add(chimneyStack);
+
+            addFire();
+
+        }
+
+        //This function uses the Volumetric Fire library to create a fire mesh
+        function addFire() {
+
+            var fireWidth = 4;
+            var fireHeight = 16;
+            var fireDepth = 4;
+            var sliceSpacing = 0.25;
+
+            fire = new VolumetricFire(fireWidth, fireHeight, fireDepth, sliceSpacing, camera);
+            scene.add(fire.mesh);
+            fire.mesh.position.set(0, fireHeight / 2 + 1, 18);
 
         }
 
         function addLights() {
 
             livingRoomLight = new THREE.PointLight(0xffffff, 1, 100, 2);
-            livingRoomLight.position.set(-2, 5, 10);
+            livingRoomLight.position.set(0, 3, 18);
 
             frontDoorLight1 = new THREE.PointLight(0xffffff, 1, 100, 2);
             frontDoorLight2 = new THREE.PointLight(0xffffff, 1, 100, 2);
@@ -208,6 +456,27 @@
             frontDoorLight1.position.set(17, 6, 3);
             frontDoorLight2.position.set(17, 6, 17);
 
+            backDoorLightInside = new THREE.PointLight(0xffffff, 0.5, 50, 2);
+            backDoorLightInside.position.set(-4, 8.5, -19);
+
+            backDoorLightOutside = new THREE.PointLight(0xffffff, 0.5, 50, 2);
+            backDoorLightOutside.position.set(-4, 8.5, -23);
+
+
+            bathroomLight = new THREE.PointLight(0xffffff, 1, 50, 2);
+            bathroomLight.position.set(-12, 7, -1);
+
+            kitchenLight = new THREE.PointLight(0xffffff, 1, 50, 2);
+            kitchenLight.position.set(7.5, 7, -10);
+
+            gardenLight = new THREE.PointLight(0xffffff, 1, 50, 2);
+            gardenLight.position.set(-30, 8, 40);
+
+            scene.add(gardenLight);
+            scene.add(kitchenLight);
+            scene.add(bathroomLight);
+            scene.add(backDoorLightOutside);
+            scene.add(backDoorLightInside);
             scene.add(frontDoorLight1);
             scene.add(frontDoorLight2);
             scene.add(livingRoomLight);
@@ -221,9 +490,6 @@
             });
 
             var gardenMaterial = new THREE.MeshLambertMaterial({
-                color: 0xffffff,
-                specular: 0x111111,
-                shininess: 10,
                 map: gardenTexture,
                 side: THREE.DoubleSide
             });
@@ -256,7 +522,12 @@
             scene.add(garden7);
             scene.add(garden8);
 
+            var lampMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 1.0 });
+            var lampGeo = new THREE.CylinderGeometry(0.25, 0.3, 7, 20);
+            var lampMesh = new THREE.Mesh(lampGeo, lampMaterial);
+            lampMesh.position.set(-30, 3.5, 40);
 
+            scene.add(lampMesh);
 
         }
 
@@ -269,9 +540,6 @@
                 floorTexture.repeat.set(15, 20);
             });
             var floorMaterial = new THREE.MeshLambertMaterial({
-                color: 0xffffff,
-                specular: 0x111111,
-                shininess: 10,
                 map: floorTexture,
                 side: THREE.DoubleSide
             });
@@ -283,15 +551,45 @@
         }
 
         function drawRoof() {
-            var roofMaterial = new THREE.MeshLambertMaterial({ color: 0x353638, side: THREE.DoubleSide });
+            var roofMaterial = new THREE.MeshLambertMaterial({ color: 0x910a0a, side: THREE.DoubleSide });
 
             var roofGeom = new THREE.Geometry();
 
-            var flatRoof = new THREE.Mesh(new THREE.PlaneGeometry(30, 40), roofMaterial);
+            roofGeom.vertices = [
+                new THREE.Vector3(15, 10, 20), //1
+                new THREE.Vector3(-15, 10, 20), //2
+                new THREE.Vector3(0, 20, 20), //3 
+                new THREE.Vector3(0, 20, -20), //4
+                new THREE.Vector3(15, 10, -20), //5 
+                new THREE.Vector3(-15, 10, -20) //6
+            ];
+
+            roofGeom.faces = [
+                new THREE.Face3(0, 1, 2),
+                new THREE.Face3(3, 4, 5),
+                new THREE.Face3(1, 5, 2),
+                new THREE.Face3(5, 2, 3),
+                new THREE.Face3(0, 3, 4),
+                new THREE.Face3(0, 2, 3)
+            ];
+
+            roofGeom.computeFaceNormals();
+            roofGeom.computeVertexNormals();
+
+            var roofMesh = new THREE.Mesh(roofGeom, roofMaterial);
+
+            scene.add(roofMesh);
+
+            var flatRoofMaterial = new THREE.MeshLambertMaterial({ color: 0x353638, side: THREE.DoubleSide });
+
+
+            var flatRoof = new THREE.Mesh(new THREE.PlaneGeometry(30, 40), flatRoofMaterial);
             flatRoof.rotation.x = Math.PI / 2;
             flatRoof.position.y = 10;
 
             scene.add(flatRoof);
+
+
 
         }
 
@@ -428,6 +726,24 @@
             scene.add(kitchenWall2Mesh);
             scene.add(kitchenWall3Mesh);
             scene.add(kitchenWall1Mesh);
+
+            addKitchenUnits();
+
+        }
+
+        function addKitchenUnits() {
+            var unitMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 1.0 });
+
+            var unit1Geo = new THREE.BoxGeometry(14.5, 3, 3);
+            unit1 = new THREE.Mesh(unit1Geo, unitMaterial);
+            unit1.position.set(7.5 + 0.249, 1.5, -18.49);
+
+            var unit2Geo = new THREE.BoxGeometry(3, 3, 16.5);
+            unit2 = new THREE.Mesh(unit2Geo, unitMaterial);
+            unit2.position.set(13.49, 1.5, - (17 / 2) - 0.25);
+
+            scene.add(unit2);
+            scene.add(unit1);
 
         }
 
@@ -598,115 +914,72 @@
 
         function drawDoors() {
 
-            var doorMaterial = new THREE.MeshLambertMaterial();
-            doorMaterial.color = new THREE.Color(0x714905);
-            doorMaterial.side = THREE.DoubleSide;
+            var doorMaterial = new THREE.MeshLambertMaterial(
+                {
+                    color: 0x714905,
+                    side: THREE.DoubleSide
+                });
 
-            var kitchenDoor = new THREE.Mesh(new THREE.PlaneGeometry(4, 7), doorMaterial);
+            var doorGeoLeft = new THREE.PlaneGeometry(4, 7);
+            doorGeoLeft.translate(2, 0, 0);
+
+            var doorGeoRight = new THREE.PlaneGeometry(4, 7);
+            doorGeoRight.translate(-2, 0, 0);
+
+            var backdoorGeo = new THREE.PlaneGeometry(3, 7);
+            backdoorGeo.translate(1.5, 0, 0);
+
+            var backDoor = new THREE.Mesh(doorGeoLeft, doorMaterial);
+            backDoor.position.set(-5, 3.5, -20);
+            backDoor.name = "door";
+
+
+
+            var kitchenDoor = new THREE.Mesh(doorGeoLeft, doorMaterial);
             kitchenDoor.rotation.y = Math.PI / 2;
+            kitchenDoor.rotation.x = Math.PI;
+            kitchenDoor.rotation.z = Math.PI;
             kitchenDoor.position.y = 3.5;
-            kitchenDoor.position.z = -6;
-            kitchenDoor.name = "kitchendoor";
+            kitchenDoor.position.z = -4;
+            kitchenDoor.name = "door";
+
+            var bathroomDoor = new THREE.Mesh(doorGeoLeft, doorMaterial);
+            bathroomDoor.rotation.y = Math.PI / 2;
+            bathroomDoor.position.y = 3.5;
+            bathroomDoor.position.z = -4;
+            bathroomDoor.position.x = -6;
+            bathroomDoor.name = "door";
+
+            var frontDoorLeft = new THREE.Mesh(doorGeoRight, doorMaterial);
+            frontDoorLeft.rotation.y = Math.PI / 2;
+            frontDoorLeft.position.y = 3.5;
+            frontDoorLeft.position.x = 15;
+            frontDoorLeft.position.z = 6;
+            frontDoorLeft.name = "door";
+
+            var frontDoorRight = new THREE.Mesh(doorGeoLeft, doorMaterial);
+            frontDoorRight.rotation.y = Math.PI / 2;
+            frontDoorRight.rotation.z = Math.PI;
+            frontDoorRight.rotation.x = Math.PI;
+            frontDoorRight.position.y = 3.5;
+            frontDoorRight.position.x = 15;
+            frontDoorRight.position.z = 14;
+            frontDoorRight.name = "door";
+
+            doors.push(backDoor);
+            scene.add(backDoor);
+
+            doors.push(bathroomDoor);
+            scene.add(bathroomDoor);
+
             doors.push(kitchenDoor);
             scene.add(kitchenDoor);
 
+            doors.push(frontDoorLeft);
+            scene.add(frontDoorLeft);
 
-        }
-
-        //Creating skybox following tutorial from https://jeremypwalton.wordpress.com/2014/09/19/skybox-in-three-js/
-        //Using a cubemap that I sliced up myself into 6 individual images, original image http://www.f-lohmueller.de/pov_tut/backgrnd/im/Cubemap_2_2048x1536.jpg
-        function addSkybox() {
-
-            var materialArray = [];
-            materialArray.push(new THREE.MeshBasicMaterial({ map: loader.load('images/skybox_zpos.png') }));
-            materialArray.push(new THREE.MeshBasicMaterial({ map: loader.load('images/skybox_zneg.png') }));
-            materialArray.push(new THREE.MeshBasicMaterial({ map: loader.load('images/skybox_ypos.png') }));
-            materialArray.push(new THREE.MeshBasicMaterial({ map: loader.load('images/skybox_yneg.png') }));
-            materialArray.push(new THREE.MeshBasicMaterial({ map: loader.load('images/skybox_xpos.png') }));
-            materialArray.push(new THREE.MeshBasicMaterial({ map: loader.load('images/skybox_xneg.png') }));
-            for (var i = 0; i < 6; i++) {
-                materialArray[i].side = THREE.BackSide;
-            }
-            var skyboxGeom = new THREE.CubeGeometry(1000, 1000, 1000, 1, 1, 1);
-            var skybox = new THREE.Mesh(skyboxGeom, materialArray);
-            scene.add(skybox);
-        }
-
-        function render(time) {
-            // let Tween engine know it is time to animate stuff
-            TWEEN.update(time);
-
-            requestAnimationFrame(render);
-
-            //Function was modified from the misc_controls_pointerlock.html example provided
-            //Modifications include: removal of a jump feature
-            if (controlsEnabled === true) {
-
-                var time = performance.now();
-                var delta = (time - prevTime) / 1000;
-
-                velocity.x -= velocity.x * 10.0 * delta;
-                velocity.z -= velocity.z * 10.0 * delta;
-
-                direction.z = Number(moveForward) - Number(moveBackward);
-                direction.x = Number(moveLeft) - Number(moveRight);
-                direction.normalize(); // this ensures consistent movements in all directions
-
-                if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * delta;
-                if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * delta;
-
-                controls.getObject().translateX(velocity.x * delta);
-                controls.getObject().translateZ(velocity.z * delta);
-
-                prevTime = time;
-
-            }
-
-            //controls.update();
-            renderer.render(scene, camera);
-        }
-
-        //Code modified from https://codepen.io/adamsullovey/pen/BoJrbb?editors=0010
-        function onDocumentClick(event) {
-            // Ask the browser to lock the pointer
-            element.requestPointerLock = element.requestPointerLock || element.mozRequestPointerLock || element.webkitRequestPointerLock;
-            element.requestPointerLock();
-
-
-            // event.preventDefault();
-            mouseClick.x = event.clientX / window.innerWidth * 2 - 1;
-            mouseClick.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-            // figure out which objects in the scene were clicked
-            raycaster.setFromCamera(mouseClick, camera);
-            var intersects = raycaster.intersectObjects(scene.children);
-            var degToRad = Math.PI / 180;
-
-            console.log(intersects);
-
-
-            // make clicked things open/close with a tweened animation
-
-            if (intersects.length > 0) {
-                clickedObject = intersects[0];
-
-                //If door is not open
-                if (clickedObject.object.name.includes("door") && !clickedObject.object.name.includes("open")) {
-
-                    var openEuler = new THREE.Euler(2 / Math.PI, 'Y');
-                    clickedObject.object.rotation.set(clickedObject.object.rotation + (2 / Math.PI), 'X');
-
-                    clickedObject.object.name += "open";
-
-                    //If door is already open
-                } else if (clickedObject.object.name.includes("door") && clickedObject.object.name.includes("open")) {
-                    console.log(clickedObject.object.name);
-
-
-                    clickedObject.object.name = "door";
-                }
-
-            }
+            doors.push(frontDoorRight);
+            scene.add(frontDoorRight);
 
         }
 
