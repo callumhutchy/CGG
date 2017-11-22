@@ -216,11 +216,11 @@
             drawRoof();
             drawKitchenWalls();
             drawLivingRoomWalls();
-            drawBathroomWalls();
+            drawBedroomWalls();
             drawDoors();
             addFireplace();
             addSofa();
-
+            addBed();
 
 
         }
@@ -428,6 +428,50 @@
             scene.add(chimneyStack);
 
             addFire();
+
+        }
+
+        function addBed(){
+            var legsTexture = loader.load('images/trunk_side.png', function(legsTexture){
+                legsTexture.wrapS = legsTexture.wrapT = THREE.RepeatWrapping;
+                legsTexture.offset.set(0,0);
+                legsTexture.repeat.set(1,1);
+            });
+            var legsMaterial = new THREE.MeshLambertMaterial({
+                map: legsTexture
+            });
+
+            var legsGeom = new THREE.BoxGeometry(1,1,1);
+            var legs1Mesh = new THREE.Mesh(legsGeom, legsMaterial);
+            legs1Mesh.position.set(-14,0.5,-11);
+            scene.add(legs1Mesh);
+
+            var legs2Mesh = new THREE.Mesh(legsGeom, legsMaterial);
+            legs2Mesh.position.set(-10, 0.5, -11);
+            scene.add(legs2Mesh);
+
+            var backboardGeom = new THREE.BoxGeometry(5,4,0.5);
+            var backboardMesh = new THREE.Mesh(backboardGeom, legsMaterial);
+            backboardMesh.position.set(-12, 2, -19);
+            scene.add(backboardMesh);
+
+            var bedMaterial = new THREE.MeshLambertMaterial({
+                color: 0x910a0a
+            });
+
+            var bedBaseGeom = new THREE.BoxGeometry(5, 1, 8.25);
+            var bedBaseMesh = new THREE.Mesh(bedBaseGeom, bedMaterial);
+            bedBaseMesh.position.set(-12,1.5, -14.6125);
+            scene.add(bedBaseMesh);
+
+            var pillowMaterial = new THREE.MeshLambertMaterial({
+                color: 0xffffff
+            });
+
+            var pillowGeom = new THREE.BoxGeometry(4,0.5,1.5);
+            var pillowMesh = new THREE.Mesh(pillowGeom, pillowMaterial);
+            pillowMesh.position.set(-12, 2, -17.5);
+            scene.add(pillowMesh);
 
         }
 
@@ -877,38 +921,38 @@
 
         }
 
-        function drawBathroomWalls() {
-            var bathroomWallMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+        function drawBedroomWalls() {
+            var bedroomWallMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide });
 
-            var bathWall1Mesh = new THREE.Mesh(new THREE.PlaneGeometry(9, 10), bathroomWallMaterial);
-            bathWall1Mesh.position.y = 5;
-            bathWall1Mesh.position.x = -15 + 4.5;
+            var bedWall1Mesh = new THREE.Mesh(new THREE.PlaneGeometry(9, 10), bedroomWallMaterial);
+            bedWall1Mesh.position.y = 5;
+            bedWall1Mesh.position.x = -15 + 4.5;
 
-            scene.add(bathWall1Mesh);
+            scene.add(bedWall1Mesh);
 
-            var bathWall2Mesh = new THREE.Mesh(new THREE.PlaneGeometry(4, 10), bathroomWallMaterial);
-            bathWall2Mesh.rotation.y = Math.PI / 2;
-            bathWall2Mesh.position.y = 5;
-            bathWall2Mesh.position.x = -15 + 9;
-            bathWall2Mesh.position.z = -2;
+            var bedWall2Mesh = new THREE.Mesh(new THREE.PlaneGeometry(4, 10), bedroomWallMaterial);
+            bedWall2Mesh.rotation.y = Math.PI / 2;
+            bedWall2Mesh.position.y = 5;
+            bedWall2Mesh.position.x = -15 + 9;
+            bedWall2Mesh.position.z = -2;
 
-            scene.add(bathWall2Mesh);
+            scene.add(bedWall2Mesh);
 
-            var bathWall3Mesh = new THREE.Mesh(new THREE.PlaneGeometry(12, 10), bathroomWallMaterial);
-            bathWall3Mesh.rotation.y = Math.PI / 2;
-            bathWall3Mesh.position.y = 5;
-            bathWall3Mesh.position.x = -15 + 9;
-            bathWall3Mesh.position.z = -20 + 6;
+            var bedWall3Mesh = new THREE.Mesh(new THREE.PlaneGeometry(12, 10), bedroomWallMaterial);
+            bedWall3Mesh.rotation.y = Math.PI / 2;
+            bedWall3Mesh.position.y = 5;
+            bedWall3Mesh.position.x = -15 + 9;
+            bedWall3Mesh.position.z = -20 + 6;
 
-            scene.add(bathWall3Mesh);
+            scene.add(bedWall3Mesh);
 
-            var bathWall4Mesh = new THREE.Mesh(new THREE.PlaneGeometry(4, 3), bathroomWallMaterial);
-            bathWall4Mesh.rotation.y = Math.PI / 2;
-            bathWall4Mesh.position.y = 10 - 1.5;
-            bathWall4Mesh.position.x = -15 + 9;
-            bathWall4Mesh.position.z = -6;
+            var bedWall4Mesh = new THREE.Mesh(new THREE.PlaneGeometry(4, 3), bedroomWallMaterial);
+            bedWall4Mesh.rotation.y = Math.PI / 2;
+            bedWall4Mesh.position.y = 10 - 1.5;
+            bedWall4Mesh.position.x = -15 + 9;
+            bedWall4Mesh.position.z = -6;
 
-            scene.add(bathWall4Mesh);
+            scene.add(bedWall4Mesh);
 
         }
 
